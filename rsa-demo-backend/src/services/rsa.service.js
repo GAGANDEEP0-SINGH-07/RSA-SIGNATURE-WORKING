@@ -17,6 +17,7 @@
  */
 
 const crypto = require("crypto");
+const logger = require("../utils/logger.util");
 
 const RSA_KEY_SIZE = parseInt(process.env.RSA_KEY_SIZE, 10) || 2048;
 
@@ -32,7 +33,7 @@ const RSA_KEY_SIZE = parseInt(process.env.RSA_KEY_SIZE, 10) || 2048;
  */
 const generateRSAKeyPair = (keySize) => {
   const modulusLength = keySize || RSA_KEY_SIZE;
-  console.log(`[RSA Service] generateRSAKeyPair → modulusLength: ${modulusLength}`);
+  logger.debug(`[RSA] generateRSAKeyPair → modulusLength: ${modulusLength}`);
 
   const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
     modulusLength,
@@ -40,7 +41,7 @@ const generateRSAKeyPair = (keySize) => {
     privateKeyEncoding: { type: "pkcs8", format: "pem" },
   });
 
-  console.log("[RSA Service] generateRSAKeyPair → key pair generated successfully");
+  logger.debug("[RSA] generateRSAKeyPair → key pair generated successfully");
   return { publicKey, privateKey };
 };
 
@@ -55,11 +56,8 @@ const generateRSAKeyPair = (keySize) => {
  * @returns {string} Hex-encoded SHA-256 digest.
  */
 const hashMessage = (message) => {
-  console.log(`[RSA Service] hashMessage → input length: ${message.length} chars`);
-
   const hash = crypto.createHash("sha256").update(message).digest("hex");
-
-  console.log(`[RSA Service] hashMessage → SHA-256: ${hash.substring(0, 16)}...`);
+  logger.debug(`[RSA] hashMessage → SHA-256: ${hash.substring(0, 16)}...`);
   return hash;
 };
 
@@ -81,10 +79,8 @@ const hashMessage = (message) => {
  *   - signature: base64-encoded digital signature
  */
 const signMessage = (message, privateKeyPem) => {
-  console.log("[RSA Service] signMessage → hashing message...");
   const hash = hashMessage(message);
 
-  console.log("[RSA Service] signMessage → signing with RSA-SHA256 + PSS...");
   const signer = crypto.createSign("RSA-SHA256");
   signer.update(message);
   signer.end();
@@ -98,7 +94,7 @@ const signMessage = (message, privateKeyPem) => {
     "base64"
   );
 
-  console.log(`[RSA Service] signMessage → signature: ${signature.substring(0, 20)}...`);
+  logger.debug(`[RSA] signMessage → signature generated`);
   return { hash, signature };
 };
 
@@ -119,10 +115,8 @@ const signMessage = (message, privateKeyPem) => {
  */
 const verifySignature = (message, signatureBase64, publicKeyPem) => {
   try {
-    console.log("[RSA Service] verifySignature → computing hashA...");
     const hashA = hashMessage(message);
 
-    console.log("[RSA Service] verifySignature → verifying with RSA-SHA256 + PSS...");
     const verifier = crypto.createVerify("RSA-SHA256");
     verifier.update(message);
     verifier.end();
@@ -140,10 +134,10 @@ const verifySignature = (message, signatureBase64, publicKeyPem) => {
     // hashB = independent recomputation for integrity comparison
     const hashB = hashMessage(message);
 
-    console.log(`[RSA Service] verifySignature → valid: ${valid}`);
+    logger.debug(`[RSA] verifySignature → valid: ${valid}`);
     return { valid, hashA, hashB };
   } catch (err) {
-    console.log(`[RSA Service] verifySignature → FAILED: ${err.message}`);
+    logger.warn(`[RSA] verifySignature → FAILED: ${err.message}`);
     const hash = hashMessage(message);
     return { valid: false, hashA: hash, hashB: hash };
   }
@@ -169,19 +163,15 @@ const verifySignature = (message, signatureBase64, publicKeyPem) => {
  * @returns {string} Base64-encoded JSON envelope containing all parts.
  */
 const encryptMessage = (plaintext, publicKeyPem) => {
-  console.log(`[RSA Service] encryptMessage → plaintext length: ${plaintext.length} chars`);
-
   // 1. Generate random AES-256 key (32 bytes) and IV (12 bytes for GCM)
   const aesKey = crypto.randomBytes(32);
   const iv = crypto.randomBytes(12);
-  console.log("[RSA Service] encryptMessage → AES-256 key and IV generated");
 
   // 2. Encrypt plaintext with AES-256-GCM
   const cipher = crypto.createCipheriv("aes-256-gcm", aesKey, iv);
   let aesCiphertext = cipher.update(plaintext, "utf-8", "base64");
   aesCiphertext += cipher.final("base64");
   const authTag = cipher.getAuthTag().toString("base64");
-  console.log("[RSA Service] encryptMessage → AES-GCM encryption done");
 
   // 3. RSA-encrypt the AES key (only 32 bytes — well within RSA limits)
   const encryptedKey = crypto.publicEncrypt(
@@ -192,7 +182,6 @@ const encryptMessage = (plaintext, publicKeyPem) => {
     },
     aesKey
   ).toString("base64");
-  console.log("[RSA Service] encryptMessage → AES key RSA-wrapped");
 
   // 4. Bundle into a JSON envelope, then base64-encode the whole thing
   const envelope = JSON.stringify({
@@ -203,7 +192,7 @@ const encryptMessage = (plaintext, publicKeyPem) => {
   });
 
   const result = Buffer.from(envelope, "utf-8").toString("base64");
-  console.log(`[RSA Service] encryptMessage → final envelope: ${result.length} chars`);
+  logger.debug(`[RSA] encryptMessage → envelope: ${result.length} chars`);
   return result;
 };
 
@@ -226,8 +215,6 @@ const encryptMessage = (plaintext, publicKeyPem) => {
  * @returns {Object} Parsed JSON payload (typically { message, signature }).
  */
 const decryptMessage = (ciphertextBase64, privateKeyPem) => {
-  console.log(`[RSA Service] decryptMessage → envelope length: ${ciphertextBase64.length} chars`);
-
   // 1. Decode and parse the envelope
   let envelope;
   try {
@@ -236,7 +223,7 @@ const decryptMessage = (ciphertextBase64, privateKeyPem) => {
   } catch (err) {
     // ── LEGACY FALLBACK ──
     // If it's not a JSON envelope, it might be a "Pure RSA" ciphertext from an older version.
-    console.warn("[RSA Service] decryptMessage → Malformed envelope, attempting legacy RSA-OAEP fallback...");
+    logger.warn("[RSA] decryptMessage → Malformed envelope, attempting legacy RSA-OAEP fallback...");
     try {
       const decrypted = crypto.privateDecrypt(
         {
@@ -249,7 +236,7 @@ const decryptMessage = (ciphertextBase64, privateKeyPem) => {
       // Legacy messages were also JSON strings: { message, signature }
       return JSON.parse(decrypted.toString("utf-8"));
     } catch (legacyErr) {
-      console.error("[RSA Service] decryptMessage → Legacy fallback also failed.");
+      logger.error("[RSA] decryptMessage → Legacy fallback also failed.");
       throw new Error("Malformed encryption envelope and legacy decryption failed. The payload may be corrupted or encrypted with an incompatible key.");
     }
   }
@@ -257,8 +244,6 @@ const decryptMessage = (ciphertextBase64, privateKeyPem) => {
   if (!envelope || !envelope.encryptedKey || !envelope.iv || !envelope.ciphertext || !envelope.authTag) {
     throw new Error("Incomplete encryption envelope. Missing required cryptographic components.");
   }
-
-  console.log("[RSA Service] decryptMessage → envelope parsed and validated");
 
   // 2. RSA-decrypt the AES key
   let aesKey;
@@ -276,7 +261,6 @@ const decryptMessage = (ciphertextBase64, privateKeyPem) => {
     const errMsg = err?.message || "Internal RSA OAEP transformation failed";
     throw new Error(`RSA Decryption failed: ${errMsg}`);
   }
-  console.log("[RSA Service] decryptMessage → AES key RSA-unwrapped");
 
   // 3. AES-256-GCM decrypt
   const iv = Buffer.from(envelope.iv, "base64");
@@ -286,12 +270,11 @@ const decryptMessage = (ciphertextBase64, privateKeyPem) => {
 
   let plaintext = decipher.update(envelope.ciphertext, "base64", "utf-8");
   plaintext += decipher.final("utf-8");
-  console.log(`[RSA Service] decryptMessage → AES decrypted: ${plaintext.length} chars`);
 
   // 4. Parse JSON
   try {
     const parsed = JSON.parse(plaintext);
-    console.log("[RSA Service] decryptMessage → JSON parsed successfully");
+    logger.debug("[RSA] decryptMessage → success");
     return parsed;
   } catch (err) {
     throw new Error("Decrypted payload is not valid JSON. Possible data corruption or key mismatch.");

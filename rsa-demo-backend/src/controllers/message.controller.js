@@ -4,6 +4,7 @@ const User = require("../models/User.model");
 const rsaService = require("../services/rsa.service");
 const { emitToUser } = require("../services/socket.service");
 const { success, error } = require("../utils/response.util");
+const logger = require("../utils/logger.util");
 
 /* ══════════════════════════════════════════
    1. POST /api/messages/send
@@ -640,7 +641,10 @@ const generateHash = async (req, res, next) => {
     if (!message) return error(res, "Message is required", 400);
     const hash = rsaService.hashMessage(message);
     return success(res, { hash }, "Hash generated using SHA-256");
-  } catch (err) { next(err); }
+  } catch (err) {
+    logger.error(`[Flow/Hash] ${err.message}`);
+    return error(res, "Failed to generate hash.", 400);
+  }
 };
 
 const signHash = async (req, res, next) => {
@@ -649,7 +653,10 @@ const signHash = async (req, res, next) => {
     if (!message || !privateKey) return error(res, "Message and Private Key are required", 400);
     const { signature } = rsaService.signMessage(message, privateKey);
     return success(res, { signature }, "Signed using RSA-PSS SHA-256");
-  } catch (err) { next(err); }
+  } catch (err) {
+    logger.error(`[Flow/Sign] ${err.message}`);
+    return error(res, "Signing failed. Check that your private key is a valid PEM string.", 400);
+  }
 };
 
 const encryptPayload = async (req, res, next) => {
@@ -659,16 +666,22 @@ const encryptPayload = async (req, res, next) => {
     const payload = JSON.stringify({ message, signature });
     const ciphertext = rsaService.encryptMessage(payload, publicKey);
     return success(res, { ciphertext }, "Encrypted using AES-256-GCM + RSA-OAEP");
-  } catch (err) { next(err); }
+  } catch (err) {
+    logger.error(`[Flow/Encrypt] ${err.message}`);
+    return error(res, "Encryption failed. Check that the public key is a valid PEM string.", 400);
+  }
 };
 
 const decryptPayload = async (req, res, next) => {
   try {
     const { ciphertext, privateKey } = req.body;
     if (!ciphertext || !privateKey) return error(res, "Ciphertext and Private Key are required", 400);
-    const { message, signature } = rsaService.decryptMessage(ciphertext, privateKey);
-    return success(res, { message, signature }, "Decrypted using AES-256-GCM + RSA-OAEP");
-  } catch (err) { next(err); }
+    const decoded = rsaService.decryptMessage(ciphertext, privateKey);
+    return success(res, { message: decoded.message, signature: decoded.signature }, "Decrypted using AES-256-GCM + RSA-OAEP");
+  } catch (err) {
+    logger.error(`[Flow/Decrypt] ${err.message}`);
+    return error(res, "Decryption failed. Wrong key or corrupted ciphertext.", 400);
+  }
 };
 
 const verifySignatureFlow = async (req, res, next) => {
@@ -677,7 +690,10 @@ const verifySignatureFlow = async (req, res, next) => {
     if (!message || !signature || !publicKey) return error(res, "Message, Signature, and Public Key are required", 400);
     const result = rsaService.verifySignature(message, signature, publicKey);
     return success(res, result, result.valid ? "Signature Verified!" : "Signature Invalid!");
-  } catch (err) { next(err); }
+  } catch (err) {
+    logger.error(`[Flow/Verify] ${err.message}`);
+    return error(res, "Verification failed. Check the public key format.", 400);
+  }
 };
 
 module.exports = { 

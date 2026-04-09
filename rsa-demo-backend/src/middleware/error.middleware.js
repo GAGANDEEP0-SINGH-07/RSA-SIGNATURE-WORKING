@@ -30,7 +30,8 @@ const errorHandler = (err, req, res, _next) => {
 
   // ── Mongoose ValidationError ──
   // e.g. required field missing, minlength check failed
-  if (err.name === "ValidationError") {
+  // Note: express-rate-limit also throws a "ValidationError" but without .errors
+  if (err.name === "ValidationError" && err.errors) {
     const fieldErrors = Object.entries(err.errors).map(([field, e]) => ({
       field,
       message: e.message,
@@ -39,6 +40,16 @@ const errorHandler = (err, req, res, _next) => {
       success: false,
       message: "Validation failed.",
       data: { errors: fieldErrors },
+    });
+  }
+
+  // ── express-rate-limit ValidationError (no .errors property) ──
+  if (err.name === "ValidationError" && !err.errors) {
+    logger.error(`[Rate-Limit ValidationError]: ${err.message}`);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server configuration error.",
+      data: null,
     });
   }
 

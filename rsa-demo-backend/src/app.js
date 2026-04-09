@@ -109,9 +109,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Higher body limit for routes that carry PEM keys & ciphertexts
-const largeBodyParser = express.json({ limit: "50kb" });
-
 /* ═══════════════════════════════════════════
    HEALTH CHECK
    ═══════════════════════════════════════════ */
@@ -221,9 +218,18 @@ const startServer = async () => {
     });
 
     process.on("unhandledRejection", (err) => {
-      logger.error(`UNHANDLED REJECTION! 💥 Shutting down...`);
-      logger.error(err.name, err.message);
-      server.close(() => process.exit(1));
+      logger.error(`UNHANDLED REJECTION: ${err?.name || "Error"} — ${err?.message || err}`);
+      // Do NOT exit — Render will restart the process and cause downtime.
+      // The error is logged and the server continues serving other requests.
+    });
+
+    process.on("uncaughtException", (err) => {
+      logger.error(`UNCAUGHT EXCEPTION: ${err?.name || "Error"} — ${err?.message || err}`);
+      // For truly fatal exceptions (out of memory, etc.), let the process die.
+      // For crypto/encoding errors, survive.
+      if (err?.code === "ERR_OUT_OF_MEMORY" || err?.message?.includes("ENOMEM")) {
+        server.close(() => process.exit(1));
+      }
     });
 
   } catch (error) {
