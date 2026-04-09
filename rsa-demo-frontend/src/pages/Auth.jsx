@@ -1,18 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const getApiBase = () => {
-    let base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-    // Remove trailing slash if present
-    base = base.replace(/\/$/, '');
-    // Ensure it ends with /api
-    if (!base.endsWith('/api')) {
-        base += '/api';
-    }
-    return base;
-};
-
-const API_BASE = getApiBase();
+import { API_BASE } from '../utils/api';
 
 /* ── Brand SVG Icons ─────────────────────────────────────────────────────── */
 const AppleIcon = () => (

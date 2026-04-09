@@ -5,7 +5,7 @@ import Landing from './pages/Landing';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+import { API_BASE } from './utils/api';
 
 /* ── Protected Route: redirects to /auth if not logged in ─────────────── */
 const ProtectedRoute = ({ children }) => {

@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-const SOCKET_BASE = API_BASE.replace('/api', '');
+import { API_BASE, SOCKET_BASE } from '../utils/api';
 const SENDER_STEPS = [
   { icon: 'tag', title: 'Step 1: Hash Payload', desc: 'SHA-256 applied to raw message bytes.', value: 'SHA256: 5f4dcc3b...e4f' },
   { icon: 'draw', title: 'Step 2: Digital Sign', desc: "RSA-PSS with SHA-256 signing the hash.", value: 'SIG: 0x72B...A09' },
