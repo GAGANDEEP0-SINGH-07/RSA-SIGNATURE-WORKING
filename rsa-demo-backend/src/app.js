@@ -29,6 +29,7 @@ const userRoutes = require("./routes/user.routes");
 const contactRoutes = require("./routes/contact.routes");
 
 const app = express();
+app.set("trust proxy", 1);
 const server = http.createServer(app);
 
 /* ═══════════════════════════════════════════
