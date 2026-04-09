@@ -44,11 +44,7 @@ app.set("io", io);
 const getAllowedOrigins = () => {
   const envUrl = process.env.FRONTEND_URL || "";
   const fixedEnvUrl = envUrl.replace(/\/$/, ""); // Remove trailing slash
-  return [
-    fixedEnvUrl,
-    "https://rsa-signature-working.vercel.app",
-    "https://rsa-signature-working-git-main-gagan-singhs-projects.vercel.app"
-  ].filter(Boolean);
+  return [fixedEnvUrl].filter(Boolean);
 };
 
 const allowedOrigins = getAllowedOrigins();

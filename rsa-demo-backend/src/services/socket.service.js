@@ -32,13 +32,9 @@ const onlineUsers = new Map();
  * @returns {import("socket.io").Server}
  */
 const initSocketIO = (httpServer) => {
-  // Build the same allowed origins list used by Express CORS in app.js
+  // Build allowed origins from FRONTEND_URL env var
   const envUrl = (process.env.FRONTEND_URL || "").replace(/\/$/, "");
-  const allowedOrigins = [
-    envUrl,
-    "https://rsa-signature-working.vercel.app",
-    "https://rsa-signature-working-git-main-gagan-singhs-projects.vercel.app"
-  ].filter(Boolean);
+  const allowedOrigins = [envUrl].filter(Boolean);
 
   const io = new Server(httpServer, {
     cors: {
