@@ -104,10 +104,11 @@ const sendMessage = async (req, res, next) => {
       201
     );
   } catch (err) {
+    const errMsg = err?.message || "";
     // Catch invalid private key errors from signing
     if (
-      err.message.includes("PEM") ||
-      err.message.includes("key") ||
+      errMsg.includes("PEM") ||
+      errMsg.includes("key") ||
       err.code === "ERR_OSSL_EVP_BAD_DECRYPT"
     ) {
       return error(res, "Invalid senderPrivateKey format.", 400);
@@ -458,8 +459,9 @@ const openMessage = async (req, res, next) => {
     try {
       decoded = rsaService.decryptMessage(msg.ciphertext, receiverPrivateKey);
     } catch (err) {
-      console.error(`[Message Controller] Decryption Error: ${err.message}`);
-      return error(res, `Cryptographic handshake failed: ${err.message}`, 400);
+      const errMsg = err?.message || "Unknown cryptographic error";
+      console.error(`[Message Controller] Decryption Error: ${errMsg}`);
+      return error(res, `Cryptographic handshake failed: ${errMsg}`, 400);
     }
 
     return success(
