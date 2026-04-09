@@ -36,10 +36,16 @@ function App() {
           localStorage.setItem('rsa_user', JSON.stringify(res.data.data.user));
         }
       }).catch(err => {
-        console.warn("Session invalid, logging out...", err);
-        localStorage.removeItem('rsa_token');
-        localStorage.removeItem('rsa_user');
-        window.location.reload(); // Force re-route via AuthRoute/ProtectedRoute
+        // Only log out if it's explicitly a 401/403 (Invalid token).
+        // Ignore 500s or Network Errors (like Render container sleeping/deploying).
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          console.warn("Session invalid or expired, logging out...", err);
+          localStorage.removeItem('rsa_token');
+          localStorage.removeItem('rsa_user');
+          window.location.href = '/auth'; // Use href to safely route
+        } else {
+          console.warn("Network error during session verification, keeping token...", err);
+        }
       });
     }
   }, []);
