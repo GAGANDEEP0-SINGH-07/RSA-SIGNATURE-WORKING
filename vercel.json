@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/rsa-demo-frontend/dist/index.html"
+    }
+  ]
+}
