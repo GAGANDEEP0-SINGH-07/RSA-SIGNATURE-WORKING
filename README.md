@@ -14,7 +14,6 @@ A high-performance, cryptographically secure chat application built with modern 
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-![Banner Image Placeholder](/api/placeholder/1200/300)
 
 [**Live Demo**](#-live-demo) •
 [**Features**](#-features) •
@@ -80,13 +79,7 @@ A high-performance, cryptographically secure chat application built with modern 
 
 | Resource | Link |
 |----------|------|
-| **Live Website** | [https://rsa-secure-chat-demo.vercel.app](https://rsa-secure-chat-demo.vercel.app/) _(Placeholder)_ |
-| **Frontend Deployment** | [Vercel Deployment URL](#) |
-| **Backend API** | [https://api.rsa-secure-chat.com](#) _(Placeholder)_ |
-| **Demo Video** | [Watch on YouTube](#) _(Placeholder)_ |
-
----
-
+| **Live Website** | [https://rsa-secure-chat-demo.vercel.app](https://rsa-secure-chat-demo.vercel.app/) |
 
 ---
 
@@ -430,7 +423,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 **Gagandeep Singh**
 
 * **GitHub** - [https://github.com/GAGANDEEP0-SINGH-07](https://github.com/GAGANDEEP0-SINGH-07)
-* **LinkedIn** - [https://www.linkedin.com/in/gagandeep-singh-saini07/](https://www.linkedin.com/in/gagandeep-singh-saini07/)
+* **LinkedIn** - [https://www.linkedin.com/in/gagandeep-singh-saini07/](https://www.linkedin.com/in/gagandeep-singh-saini07)
 
 ---
 <p align="center">Made with ❤️ for privacy and security.</p>
