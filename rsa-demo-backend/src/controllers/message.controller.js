@@ -380,18 +380,29 @@ const deleteMessage = async (req, res, next) => {
     const { messageId } = req.params;
     const currentUserId = req.user.userId;
 
+    logger.info(`[Delete Request] User: ${currentUserId}, Message: ${messageId}`);
+
     if (!mongoose.isValidObjectId(messageId)) {
-      return error(res, "Invalid message ID.", 400);
+      return error(res, "Invalid message ID format.", 400);
     }
 
     const msg = await Message.findById(messageId);
     if (!msg) {
-      return error(res, "Message not found.", 404);
+      logger.warn(`[Delete] Message ${messageId} not found or already deleted.`);
+      return error(res, "Message not found or already deleted.", 404);
     }
 
-    const isSender = msg.sender.toString() === currentUserId;
-    const isReceiver = msg.receiver.toString() === currentUserId;
-    const otherUserId = isSender ? msg.receiver.toString() : msg.sender.toString();
+    const senderId = msg.sender?.toString();
+    const receiverId = msg.receiver?.toString();
+
+    if (!senderId || !receiverId) {
+      logger.error(`[Delete] Corrupt message found: ${messageId}`);
+      return error(res, "Message record is malformed.", 500);
+    }
+
+    const isSender = senderId === currentUserId;
+    const isReceiver = receiverId === currentUserId;
+    const otherUserId = isSender ? receiverId : senderId;
 
     if (!isSender && !isReceiver) {
       return error(res, "Access denied. You are not part of this conversation.", 403);
@@ -399,27 +410,36 @@ const deleteMessage = async (req, res, next) => {
 
     // New Requirement: If sender deletes, delete for everyone. If receiver deletes, delete for me.
     if (isSender) {
-        // Hard delete for both
         await Message.findByIdAndDelete(messageId);
+        logger.info(`[Delete] Hard delete by sender: ${messageId}`);
     } else {
-        // Soft delete for receiver only
         msg.deletedByReceiver = true;
         if (msg.deletedBySender) {
             await Message.findByIdAndDelete(messageId);
+            logger.info(`[Delete] Cleanup delete by receiver: ${messageId}`);
         } else {
             await msg.save();
+            logger.info(`[Delete] Soft delete by receiver: ${messageId}`);
         }
     }
 
     // Emit real-time deletion event to both parties
-    const io = req.app.get("io");
-    if (io) {
-      emitToUser(io, currentUserId, "message:deleted", { messageId });
-      emitToUser(io, otherUserId, "message:deleted", { messageId });
+    try {
+      const io = req.app.get("io");
+      if (io) {
+        emitToUser(io, currentUserId, "message:deleted", { messageId });
+        emitToUser(io, otherUserId, "message:deleted", { messageId });
+      } else {
+        logger.warn("[Delete] Socket.io instance (io) not found in app container.");
+      }
+    } catch (socketErr) {
+      logger.error(`[Delete] Socket emission failed: ${socketErr.message}`);
+      // Don't fail the entire request if just socket fails
     }
 
     return success(res, null, isSender ? "Message deleted for everyone." : "Message deleted for you.");
   } catch (err) {
+    logger.error(`[Delete CRASH]: ${err.message}`);
     next(err);
   }
 };

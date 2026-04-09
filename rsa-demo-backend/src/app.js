@@ -139,7 +139,7 @@ app.get("/health", (_req, res) => {
    ═══════════════════════════════════════════ */
 
 app.use("/api/auth", authRoutes);
-app.use("/api/messages", largeBodyParser, messageRoutes);
+app.use("/api/messages", messageRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/contacts", contactRoutes);
 
