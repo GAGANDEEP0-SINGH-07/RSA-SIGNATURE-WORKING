@@ -32,37 +32,40 @@ const app = express();
 app.set("trust proxy", 1);
 const server = http.createServer(app);
 
-/* ═══════════════════════════════════════════
-   SOCKET.IO INITIALIZATION
-   ═══════════════════════════════════════════ */
-
+// Initialize Socket.io
 const io = initSocketIO(server);
-app.set("io", io); // Make io accessible in controllers via req.app.get("io")
+app.set("io", io); 
 
 /* ═══════════════════════════════════════════
    GLOBAL MIDDLEWARE
    ═══════════════════════════════════════════ */
 
-// a. Secure HTTP headers
-app.use(helmet());
+// [FIX]: CORS must be absolute first and handle errors gracefully
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "https://rsa-signature-working.vercel.app",
+  "https://rsa-signature-working-git-main-gagan-singhs-projects.vercel.app"
+].filter(Boolean);
 
-// CORS — restrict to known frontend origin in production
-const corsOptions = {
+app.use(cors({
   origin: function (origin, callback) {
-    const allowed = [process.env.FRONTEND_URL, "https://rsa-signature-working.vercel.app"].filter(Boolean);
-    // Allow if no origin (server-to-server), if in allowed list, or if wildcard set
-    if (!origin || allowed.includes(origin) || process.env.FRONTEND_URL === "*") {
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.includes(origin) || process.env.FRONTEND_URL === "*";
+    if (isAllowed) {
       callback(null, true);
     } else {
-      logger.warn(`CORS BLOCKED: Incoming origin [${origin}] is not in allowed list:`, allowed);
-      callback(new Error("Not allowed by CORS"));
+      console.warn(`[CORS Blocked]: ${origin}`);
+      callback(null, false); // Return false instead of error to avoid 500 without headers
     }
   },
+  credentials: true,
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
-  credentials: true,
-  maxAge: 86400,
-};
+  maxAge: 86400
+}));
+
+// a. Secure HTTP headers
+app.use(helmet());
 
 app.use((req, res, next) => {
   if (req.method !== "OPTIONS") {
@@ -70,8 +73,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-app.use(cors(corsOptions));
 
 // Request logging — use 'combined' in production, 'dev' otherwise
 if (process.env.NODE_ENV === "production") {
