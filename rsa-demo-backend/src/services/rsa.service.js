@@ -273,7 +273,8 @@ const decryptMessage = (ciphertextBase64, privateKeyPem) => {
     );
   } catch (err) {
     // Re-throw with a more descriptive message for the controller to catch
-    throw new Error(`RSA Decryption failed: ${err.message}`);
+    const errMsg = err?.message || "Internal RSA OAEP transformation failed";
+    throw new Error(`RSA Decryption failed: ${errMsg}`);
   }
   console.log("[RSA Service] decryptMessage → AES key RSA-unwrapped");
 
