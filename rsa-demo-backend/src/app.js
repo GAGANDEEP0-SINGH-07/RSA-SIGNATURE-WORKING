@@ -165,7 +165,8 @@ const startServer = async () => {
     await connectDB();
 
     // Use server.listen (not app.listen) so Socket.io shares the same port
-    server.listen(PORT, () => {
+    // Bind to ""0.0.0.0"" for Render/Docker compatibility to avoid 502 Bad Gateway
+    server.listen(PORT, "0.0.0.0", () => {
       logger.info(`Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}`);
       logger.info("─── Available Routes ───");
       logger.info("  POST   /api/auth/signup              (rate limited)");

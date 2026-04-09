@@ -38,7 +38,21 @@ const initSocketIO = (httpServer) => {
 
   const io = new Server(httpServer, {
     cors: {
-      origin: allowedOrigins.length > 0 ? allowedOrigins : "*",
+      origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        const incoming = origin.replace(/\/$/, "");
+        const isAllowed = allowedOrigins.some((o) => o === incoming) || process.env.FRONTEND_URL === "*";
+        
+        if (isAllowed) {
+          callback(null, true);
+        } else {
+          logger.warn(`[Socket CORS Blocked]: ${origin}`);
+          // Fallback to true if strictly debugging, but typically should block or mirror Express.
+          // Since Express was super permissive (callback(null, isAllowed) but had a comment about allowing everything if "*"),
+          // we strictly adhere to isAllowed.
+          callback(null, isAllowed);
+        }
+      },
       methods: ["GET", "POST"],
       credentials: true,
     },
