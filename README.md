@@ -33,7 +33,6 @@ A high-performance, cryptographically secure chat application built with modern 
 
 - [📖 About the Project](#-about-the-project)
 - [🌐 Live Demo](#-live-demo)
-- [📸 Screenshots](#-screenshots--preview)
 - [✨ Features](#-features)
 - [🛠 Tech Stack](#-tech-stack)
 - [🔀 Architecture / Workflow](#-architecture--workflow)
@@ -430,9 +429,8 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 **Gagandeep Singh**
 
-* **Email** - [Pl
 * **GitHub** - [https://github.com/GAGANDEEP0-SINGH-07](https://github.com/GAGANDEEP0-SINGH-07)
-* **LinkedIn** - [Placeholder LinkedIn URL](https://www.linkedin.com/in/gagandeep-singh-saini07/)
+* **LinkedIn** - [https://www.linkedin.com/in/gagandeep-singh-saini07/](https://www.linkedin.com/in/gagandeep-singh-saini07/)
 
 ---
 <p align="center">Made with ❤️ for privacy and security.</p>
