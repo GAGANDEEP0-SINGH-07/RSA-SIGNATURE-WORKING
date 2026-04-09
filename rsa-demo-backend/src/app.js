@@ -41,21 +41,34 @@ app.set("io", io);
    ═══════════════════════════════════════════ */
 
 // [FIX]: CORS must be absolute first and handle errors gracefully
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  "https://rsa-signature-working.vercel.app",
-  "https://rsa-signature-working-git-main-gagan-singhs-projects.vercel.app"
-].filter(Boolean);
+const getAllowedOrigins = () => {
+  const envUrl = process.env.FRONTEND_URL || "";
+  const fixedEnvUrl = envUrl.replace(/\/$/, ""); // Remove trailing slash
+  return [
+    fixedEnvUrl,
+    "https://rsa-signature-working.vercel.app",
+    "https://rsa-signature-working-git-main-gagan-singhs-projects.vercel.app"
+  ].filter(Boolean);
+};
+
+const allowedOrigins = getAllowedOrigins();
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    const isAllowed = allowedOrigins.includes(origin) || process.env.FRONTEND_URL === "*";
+    
+    // Normalize incoming origin for comparison
+    const incoming = origin.replace(/\/$/, "");
+    const isAllowed = allowedOrigins.some(o => o.replace(/\/$/, "") === incoming) 
+                      || process.env.FRONTEND_URL === "*";
+    
     if (isAllowed) {
       callback(null, true);
     } else {
       console.warn(`[CORS Blocked]: ${origin}`);
-      callback(null, false); // Return false instead of error to avoid 500 without headers
+      // Return true to allow but simply logs the warning if you want to be super permissive
+      // For now, let's allow everything if FRONTEND_URL is "*"
+      callback(null, isAllowed);
     }
   },
   credentials: true,
@@ -63,6 +76,9 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
   maxAge: 86400
 }));
+
+// Pre-flight setup
+app.options("*", cors()); // Explicitly handle all OPTIONS requests
 
 // a. Secure HTTP headers
 app.use(helmet());
