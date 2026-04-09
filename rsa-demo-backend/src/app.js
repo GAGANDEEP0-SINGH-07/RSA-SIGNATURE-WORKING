@@ -48,12 +48,29 @@ app.use(helmet());
 
 // CORS — restrict to known frontend origin in production
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "*",
+  origin: function (origin, callback) {
+    const allowed = [process.env.FRONTEND_URL, "https://rsa-signature-working.vercel.app"].filter(Boolean);
+    // Allow if no origin (server-to-server), if in allowed list, or if wildcard set
+    if (!origin || allowed.includes(origin) || process.env.FRONTEND_URL === "*") {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS BLOCKED: Incoming origin [${origin}] is not in allowed list:`, allowed);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
   credentials: true,
-  maxAge: 86400, // 24 hours preflight cache
+  maxAge: 86400,
 };
+
+app.use((req, res, next) => {
+  if (req.method !== "OPTIONS") {
+    logger.info(`${req.method} ${req.url} - Origin: ${req.headers.origin || "None"}`);
+  }
+  next();
+});
+
 app.use(cors(corsOptions));
 
 // Request logging — use 'combined' in production, 'dev' otherwise
