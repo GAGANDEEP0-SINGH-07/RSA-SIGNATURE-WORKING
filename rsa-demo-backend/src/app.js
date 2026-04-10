@@ -206,11 +206,10 @@ const startServer = async () => {
     process.on("SIGTERM", () => {
       logger.info("SIGTERM received. Shutting down gracefully...");
       io.close(); // Close Socket.io connections
-      server.close(() => {
-        mongoose.connection.close(false, () => {
-          logger.info("MongoDB connection closed.");
-          process.exit(0);
-        });
+      server.close(async () => {
+        await mongoose.connection.close();
+        logger.info("MongoDB connection closed.");
+        process.exit(0);
       });
     });
 
